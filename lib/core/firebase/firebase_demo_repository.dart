@@ -4,6 +4,7 @@ import '../models/campo_estandar.dart';
 import '../models/encuesta.dart';
 import '../models/pregunta.dart';
 import '../models/tarea.dart';
+import '../models/usuario.dart';
 import 'firebase_bootstrap.dart';
 
 abstract final class FirebaseDemoRepository {
@@ -26,6 +27,12 @@ abstract final class FirebaseDemoRepository {
     if (!canWrite) return [];
     final snapshot = await _db.collection('tareas').get();
     return snapshot.docs.map((doc) => _tareaFromMap(doc.data())).toList();
+  }
+
+  static Future<List<Usuario>> getUsuarios() async {
+    if (!canWrite) return [];
+    final snapshot = await _db.collection('usuarios').get();
+    return snapshot.docs.map((doc) => _usuarioFromMap(doc.data())).toList();
   }
 
   // ─── Write (batch seed) ───────────────────────────────────────────────────
@@ -70,6 +77,51 @@ abstract final class FirebaseDemoRepository {
         .collection('tareas')
         .doc(tarea.id)
         .set(_tareaToMap(tarea), SetOptions(merge: true));
+  }
+
+  // ─── Organismo config (modoPreguntas, camposObligatorios, evidencias) ────────
+
+  static Future<Map<String, dynamic>?> getOrgConfig(String orgId) async {
+    if (!canWrite) return null;
+    final doc = await _db.collection('config').doc(orgId).get();
+    return doc.exists ? doc.data() : null;
+  }
+
+  static Future<void> writeOrgConfig(
+    String orgId,
+    Map<String, Object?> data,
+  ) async {
+    if (!canWrite) return;
+    await _db
+        .collection('config')
+        .doc(orgId)
+        .set(data, SetOptions(merge: true));
+  }
+
+  static Future<void> writeUsuario(Usuario usuario) async {
+    if (!canWrite) return;
+    await _db
+        .collection('usuarios')
+        .doc(usuario.id)
+        .set(_usuarioToMap(usuario), SetOptions(merge: true));
+  }
+
+  static Future<void> deleteUsuario(String id) async {
+    if (!canWrite) return;
+    await _db.collection('usuarios').doc(id).delete();
+  }
+
+  static Future<void> seedUsuarios(List<Usuario> usuarios) async {
+    if (!canWrite) return;
+    final batch = _db.batch();
+    for (final u in usuarios) {
+      batch.set(
+        _db.collection('usuarios').doc(u.id),
+        _usuarioToMap(u),
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
   }
 
   static Future<void> writeSyncedRelevamiento(Tarea tarea) async {
@@ -205,6 +257,30 @@ abstract final class FirebaseDemoRepository {
       lng: (map['lng'] as num?)?.toDouble() ?? -64.1888,
       areaId: map['areaId'] as String?,
       motivo: map['motivo'] as String?,
+    );
+  }
+
+  static Map<String, Object?> _usuarioToMap(Usuario usuario) {
+    return {
+      'id': usuario.id,
+      'email': usuario.email,
+      'nombre': usuario.nombre,
+      'rolId': usuario.rolId,
+      'rolNombre': usuario.rolNombre,
+      'organismo': usuario.organismo,
+      'estado': usuario.estado,
+    };
+  }
+
+  static Usuario _usuarioFromMap(Map<String, dynamic> map) {
+    return Usuario(
+      id: map['id'] as String,
+      email: map['email'] as String,
+      nombre: map['nombre'] as String,
+      rolId: map['rolId'] as String,
+      rolNombre: map['rolNombre'] as String,
+      organismo: map['organismo'] as String,
+      estado: map['estado'] as String? ?? 'Activo',
     );
   }
 }

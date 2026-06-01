@@ -125,7 +125,8 @@ class DemoStore extends ChangeNotifier {
   final List<AreaOperativa> areas = MockData.areasOperativas;
   String _modoPreguntas = 'libre'; // RF-009: libre / restringido / bloqueado
   final List<NotificacionApp> _notificaciones = []; // RF-012
-  final Map<String, List<RelevamientoLocal>> _relevamientosMap = {}; // multi-relevamiento
+  final Map<String, List<RelevamientoLocal>> _relevamientosMap =
+      {}; // multi-relevamiento
   final Map<String, Set<String>> _evidenciasPorEncuesta = {
     'enc-borrador': {'Foto', 'GPS', 'Firma'},
   };
@@ -301,6 +302,7 @@ class DemoStore extends ChangeNotifier {
     try {
       var encuestas = await FirebaseDemoRepository.getEncuestas();
       var tareas = await FirebaseDemoRepository.getTareas();
+      var usuariosDb = await FirebaseDemoRepository.getUsuarios();
 
       if (encuestas.isEmpty) {
         encuestas = MockData.createEncuestas();
@@ -311,8 +313,16 @@ class DemoStore extends ChangeNotifier {
         );
       }
 
+      if (usuariosDb.isEmpty) {
+        usuariosDb = MockData.usuarios.toList();
+        await FirebaseDemoRepository.seedUsuarios(usuariosDb);
+      }
+
       _encuestas = encuestas;
       _tareas = tareas;
+      usuarios
+        ..clear()
+        ..addAll(usuariosDb);
     } catch (e) {
       _encuestas = MockData.createEncuestas();
       _tareas = MockData.createTareas();
@@ -357,8 +367,14 @@ class DemoStore extends ChangeNotifier {
   void setModoPreguntas(String modo) {
     final prev = _modoPreguntas;
     _modoPreguntas = modo;
-    _log('MODO_PREGUNTAS', 'organismo', 'Modo → $modo',
-        valorAnterior: prev, valorNuevo: modo);
+    _log(
+      'MODO_PREGUNTAS',
+      'organismo',
+      'Modo → $modo',
+      valorAnterior: prev,
+      valorNuevo: modo,
+    );
+    _persistOrgConfig();
     notifyListeners();
   }
 
@@ -417,6 +433,21 @@ class DemoStore extends ChangeNotifier {
         valorNuevo: valorNuevo,
       ),
     );
+  }
+
+  void _persistOrgConfig() {
+    unawaited(FirebaseDemoRepository.writeOrgConfig('org-salud', {
+      'modoPreguntas': _modoPreguntas,
+      'camposObligatorios': _camposObligatorios.toList(),
+      'evidenciasPorEncuesta': {
+        for (final e in _evidenciasPorEncuesta.entries)
+          e.key: e.value.toList(),
+      },
+      'destinatariosPorEncuesta': {
+        for (final e in _destinatariosPorEncuesta.entries)
+          e.key: e.value.toList(),
+      },
+    }));
   }
 
   void _persistEncuesta(String id) {
@@ -521,6 +552,7 @@ class DemoStore extends ChangeNotifier {
     } else {
       _camposObligatorios.add(id);
     }
+    _persistOrgConfig();
     notifyListeners();
   }
 
@@ -733,18 +765,18 @@ class DemoStore extends ChangeNotifier {
     required String organismo,
   }) {
     final id = 'u-${DateTime.now().millisecondsSinceEpoch}';
-    usuarios.add(
-      Usuario(
-        id: id,
-        email: email,
-        nombre: nombre,
-        rolId: rolId,
-        rolNombre: rolNombre,
-        organismo: organismo,
-        estado: 'Activo',
-      ),
+    final nuevo = Usuario(
+      id: id,
+      email: email,
+      nombre: nombre,
+      rolId: rolId,
+      rolNombre: rolNombre,
+      organismo: organismo,
+      estado: 'Activo',
     );
+    usuarios.add(nuevo);
     _log('ALTA_USUARIO', id, '$email · $rolId');
+    unawaited(FirebaseDemoRepository.writeUsuario(nuevo));
     notifyListeners();
   }
 
@@ -765,16 +797,45 @@ class DemoStore extends ChangeNotifier {
       rolNombre: rolNombre,
       organismo: organismo,
     );
-    _log('MODIFICAR_USUARIO', id, '$email · $rolId');
+    _log(
+      'MODIFICAR_USUARIO',
+      id,
+      '$email · $rolId',
+      valorAnterior: email,
+      valorNuevo: '$nombre · $rolId',
+    );
+    unawaited(FirebaseDemoRepository.writeUsuario(usuarios[index]));
     notifyListeners();
   }
 
   void toggleUsuarioEstado(String id) {
     final index = usuarios.indexWhere((usuario) => usuario.id == id);
     if (index == -1) return;
-    final estado = usuarios[index].estado == 'Activo' ? 'Inactivo' : 'Activo';
+    final prev = usuarios[index].estado;
+    final estado = prev == 'Activo' ? 'Inactivo' : 'Activo';
     usuarios[index] = usuarios[index].copyWith(estado: estado);
-    _log('CAMBIAR_ESTADO_USUARIO', id, estado);
+    _log(
+      'CAMBIAR_ESTADO_USUARIO',
+      id,
+      estado,
+      valorAnterior: prev,
+      valorNuevo: estado,
+    );
+    unawaited(FirebaseDemoRepository.writeUsuario(usuarios[index]));
+    notifyListeners();
+  }
+
+  void deleteUsuario(String id) {
+    final prev = usuarios.where((u) => u.id == id).firstOrNull?.email ?? id;
+    usuarios.removeWhere((u) => u.id == id);
+    _log(
+      'BAJA_USUARIO',
+      id,
+      'Usuario eliminado: $prev',
+      valorAnterior: 'Activo',
+      valorNuevo: 'eliminado',
+    );
+    unawaited(FirebaseDemoRepository.deleteUsuario(id));
     notifyListeners();
   }
 
@@ -870,16 +931,25 @@ class DemoStore extends ChangeNotifier {
       encuestaId,
       'Evidencias: ${evidencias.join(', ')} · Destinatarios: ${destinatarios.join(', ')}',
     );
+    _persistOrgConfig();
     notifyListeners();
   }
 
   void deleteEncuesta(String encuestaId) {
     _encuestas = _encuestas.where((e) => e.id != encuestaId).toList();
-    _log('ELIMINAR_ENCUESTA', encuestaId, 'Encuesta eliminada por el Diseñador',
-        valorAnterior: 'borrador', valorNuevo: 'eliminada');
+    _log(
+      'ELIMINAR_ENCUESTA',
+      encuestaId,
+      'Encuesta eliminada por el Diseñador',
+      valorAnterior: 'borrador',
+      valorNuevo: 'eliminada',
+    );
     if (FirebaseBootstrap.initialized) {
       unawaited(
-        FirebaseFirestore.instance.collection('encuestas').doc(encuestaId).delete(),
+        FirebaseFirestore.instance
+            .collection('encuestas')
+            .doc(encuestaId)
+            .delete(),
       );
     }
     notifyListeners();
@@ -948,8 +1018,13 @@ class DemoStore extends ChangeNotifier {
         else
           tarea,
     ];
-    _log('REASIGNAR_TAREA', taskId, 'Asignada a $asignadoA',
-        valorAnterior: prev, valorNuevo: asignadoA);
+    _log(
+      'REASIGNAR_TAREA',
+      taskId,
+      'Asignada a $asignadoA',
+      valorAnterior: prev,
+      valorNuevo: asignadoA,
+    );
     _notify('Tarea reasignada', '$taskId → $asignadoA', 'R-06');
     _persistTarea(taskId);
     notifyListeners();
@@ -1061,8 +1136,13 @@ class DemoStore extends ChangeNotifier {
         else
           tarea,
     ];
-    _log('DEVOLVER', taskId, 'Tarea devuelta — motivo: $motivo',
-        valorAnterior: prev, valorNuevo: TareaEstado.devuelta.label);
+    _log(
+      'DEVOLVER',
+      taskId,
+      'Tarea devuelta — motivo: $motivo',
+      valorAnterior: prev,
+      valorNuevo: TareaEstado.devuelta.label,
+    );
     _notify(
       'Tarea devuelta por inspector',
       'Motivo: $motivo',

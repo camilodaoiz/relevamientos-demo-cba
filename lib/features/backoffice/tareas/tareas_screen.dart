@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/models/area_operativa.dart';
 import '../../../core/models/encuesta.dart';
 import '../../../core/models/tarea.dart';
 import '../../../core/state/demo_store.dart';

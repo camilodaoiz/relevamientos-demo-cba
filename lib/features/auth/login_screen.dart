@@ -217,6 +217,7 @@ class _GovernmentSlogan extends StatelessWidget {
       ),
       child: Image.asset(
         'assets/logos/logo_gobierno_cordoba.png',
+        key: const Key('government-slogan-logo'),
         height: 60,
         fit: BoxFit.contain,
         alignment: Alignment.centerLeft,

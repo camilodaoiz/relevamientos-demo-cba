@@ -119,6 +119,8 @@ class OrganismoScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 22),
         if (store.currentUser.rolId == 'R-02') ...[
+          _CamposObligatoriosPanel(store: store),
+          const SizedBox(height: 22),
           _ModosPreguntasPanel(store: store),
           const SizedBox(height: 22),
           _AreasOperativasPanel(areas: store.areas, usuarios: store.usuarios),

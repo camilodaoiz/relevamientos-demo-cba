@@ -106,7 +106,7 @@ void main() {
     await tester.tap(find.text('Ingresar').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Bienvenido, Camila.'), findsOneWidget);
+    expect(find.text('¡Hola de nuevo, Camila!'), findsOneWidget);
   });
 
   testWidgets('backoffice session closes from sidebar', (
@@ -141,7 +141,7 @@ void main() {
     await tester.tap(find.text('Administrador del Sistema'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Bienvenido, Camila.'), findsOneWidget);
+    expect(find.text('¡Hola de nuevo, Camila!'), findsOneWidget);
   });
 
   testWidgets('validator role opens backoffice dashboard', (
@@ -153,7 +153,7 @@ void main() {
     await tester.tap(find.text('Validador / Controlador'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Bienvenido, Sofia.'), findsOneWidget);
+    expect(find.text('¡Hola de nuevo, Sofia!'), findsOneWidget);
     expect(find.text('Validador / Controlador'), findsOneWidget);
   });
 
@@ -180,7 +180,7 @@ void main() {
 
     await tester.tap(find.text('CAPS Nueva Cordoba'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Iniciar relevamiento').last);
+    await tester.tap(find.text('Nuevo relevamiento'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Cargar datos de ejemplo'));
@@ -193,9 +193,13 @@ void main() {
     await tester.ensureVisible(find.text('Siguiente'));
     await tester.tap(find.text('Siguiente'));
     await tester.pumpAndSettle();
-    expect(find.text('Finalizar'), findsOneWidget);
+    expect(find.text('Completar relevamiento'), findsOneWidget);
 
-    await tester.tap(find.text('Finalizar'));
+    await tester.tap(find.text('Completar relevamiento'));
+    await tester.pumpAndSettle();
+    expect(find.text('Finalizar tarea'), findsOneWidget);
+
+    await tester.tap(find.text('Finalizar tarea'));
     await tester.pumpAndSettle();
 
     expect(find.text('Estado de sincronización'), findsOneWidget);

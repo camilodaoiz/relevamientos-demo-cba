@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/encuesta.dart';
 import '../../../core/state/demo_store.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_data_table.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -290,13 +289,11 @@ class _EncuestasScreenState extends ConsumerState<EncuestasScreen> {
                               ),
                               actions: [
                                 TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(ctx, false),
+                                  onPressed: () => Navigator.pop(ctx, false),
                                   child: const Text('Cancelar'),
                                 ),
                                 FilledButton(
-                                  onPressed: () =>
-                                      Navigator.pop(ctx, true),
+                                  onPressed: () => Navigator.pop(ctx, true),
                                   style: FilledButton.styleFrom(
                                     backgroundColor: AppColors.error,
                                   ),
