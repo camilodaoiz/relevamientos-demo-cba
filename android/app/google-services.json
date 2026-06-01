@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "645432723559",
+    "project_id": "relevamientos-demo-cba-2026",
+    "storage_bucket": "relevamientos-demo-cba-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:645432723559:android:d37471aadbb7b1912aacc2",
+        "android_client_info": {
+          "package_name": "com.example.relevamientos_demo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMp48I0xABuRKEO0kZrSET9wl543n8OZw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
